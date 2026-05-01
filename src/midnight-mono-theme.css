@@ -1,0 +1,46 @@
+/* Injecting Midnight Mono into Radix UI Tokens */
+.radix-themes {
+  /* --- Background & Surfaces --- */
+  --color-background: #0e0e0e;
+  --color-panel-solid: #1c1b1b;
+  --color-surface: #1c1b1b;
+
+  /* --- Typography --- */
+  --default-font-family: "Space Grotesk", sans-serif;
+  --code-font-family: "JetBrains Mono", monospace;
+
+  /* --- Primary Accent Override (#adc6ff) --- */
+  /* We map your primary color to the Radix "Accent" scales */
+  --accent-9: #adc6ff; /* Standard button background */
+  --accent-10: #9cb8f5; /* Hover state */
+  --accent-11: #adc6ff; /* High contrast text */
+  --accent-a9: rgba(173, 198, 255, 0.9);
+
+  /* --- Text Colors --- */
+  --text-main:: #e5e2e1; /* Main high-contrast text */
+  --text-secondary: rgba(229, 226, 225, 0.6); /* Secondary text */
+
+  /* --- Status Colors --- */
+  --rt-color-success: #4ae176;
+  --rt-color-error: #ff4d4d;
+}
+
+/* Force Space Grotesk on all Radix UI Typography components */
+.rt-Text,
+.rt-Heading,
+.rt-Button {
+  font-family: var(--default-font-family);
+  letter-spacing: -0.02em; /* Fits the geometric aesthetic better */
+}
+
+/* Force JetBrains Mono for Code-specific components */
+.rt-Code,
+.rt-Kbd {
+  font-family: var(--code-font-family);
+}
+
+/* Customizing the Card to match #1c1b1b */
+.rt-Card {
+  background-color: var(--color-surface);
+  border: 1px solid rgba(229, 226, 225, 0.1);
+}
