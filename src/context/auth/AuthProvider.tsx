@@ -1,25 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import type { User } from "../../types/types";
+import { AuthContext } from "./AuthContext";
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>();
 
-  useEffect(() => {
-    // Itt olvasnád ki a JWT tokent a localStorage-ből betöltéskor
-    const token = localStorage.getItem("token");
-    if (token) {
-      // Mockoljuk, hogy a tokenből kiolvastuk, hogy ő egy tanár
-      setUser({ id: "1", role: "teacher" });
-    }
-  }, []);
-
-  const login = (token: string) => {
+  const login = (token: string, userData: User) => {
     localStorage.setItem("token", token);
-    // JWT dekódolás helyett most beégetünk egy tanár usert a példa kedvéért
-    setUser({ id: "1", role: "teacher" });
+    setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+
     setUser(null);
   };
 

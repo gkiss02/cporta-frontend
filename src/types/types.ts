@@ -3,3 +3,11 @@ export enum UserType {
   TEACHER = "TEACHER",
   ADMIN = "ADMIN",
 }
+
+export type User = {
+  _id: string;
+  name: string;
+  neptunCode: string;
+  emailAddress: string;
+  type: UserType;
+};
