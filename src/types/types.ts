@@ -6,7 +6,8 @@ export enum UserType {
 
 export type User = {
   _id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   neptunCode: string;
   emailAddress: string;
   type: UserType;
