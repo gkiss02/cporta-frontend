@@ -11,6 +11,7 @@ import { AuthProvider } from "./context/auth/AuthProvider";
 import StudentDashboardPage from "./pages/student/student-dashboard/StudentDashboardPage";
 import StudentTasksPage from "./pages/student/student-tasks/StudentTasksPage";
 import StudentCoursesPage from "./pages/student/student-courses/StudentCoursesPage";
+import CourseDetails from "./pages/teacher/course-details/TeacherCourseDetails";
 
 const App = () => {
   const router = createBrowserRouter([
@@ -25,7 +26,13 @@ const App = () => {
           children: [
             { index: true, element: <TeacherCoursesPage /> },
             { path: "tasks", element: <TeacherTasksPage /> },
-            { path: "courses", element: <TeacherCoursesPage /> },
+            {
+              path: "courses",
+              children: [
+                { index: true, element: <TeacherCoursesPage /> },
+                { path: ":courseId", element: <CourseDetails /> },
+              ],
+            },
           ],
         },
       ],

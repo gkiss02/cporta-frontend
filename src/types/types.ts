@@ -12,3 +12,28 @@ export type User = {
   emailAddress: string;
   type: UserType;
 };
+
+export type Course = {
+  _id: string;
+  code: string;
+  name: string;
+  studentCount: number;
+  averageGrade?: number;
+};
+
+export type Student = {
+  firstName: string;
+  lastName: string;
+  neptunCode: string;
+  lastLoginAt: string;
+  averageGrade?: number;
+};
+
+export type Task = {
+  _id: string;
+  title: string;
+  description: string;
+  courseId: string;
+  deadline: Date;
+  createdAt: Date;
+};

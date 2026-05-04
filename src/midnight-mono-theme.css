@@ -23,6 +23,7 @@
   /* --- Status Colors --- */
   --rt-color-success: #4ae176;
   --rt-color-error: #ff4d4d;
+  --border-color:rgba(229, 226, 225, 0.1)
 }
 
 /* Force Space Grotesk on all Radix UI Typography components */
