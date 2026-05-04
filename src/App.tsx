@@ -8,10 +8,14 @@ import TeacherTasksPage from "./pages/teacher/teacher-tasks-page/TeacherTasksPag
 import ProtectedRoute from "./components/ProtectedRoute";
 import { UserType } from "./types/types";
 import { AuthProvider } from "./context/auth/AuthProvider";
+import StudentDashboardPage from "./pages/student/student-dashboard/StudentDashboardPage";
+import StudentTasksPage from "./pages/student/student-tasks/StudentTasksPage";
+import StudentCoursesPage from "./pages/student/student-courses/StudentCoursesPage";
 
 const App = () => {
   const router = createBrowserRouter([
-    { path: "/", element: <LoginPage /> },
+    { path: "/", element: <LoginPage type="student" /> },
+    { path: "/teacher/login", element: <LoginPage type="teacher" /> },
     {
       element: <ProtectedRoute allowedRoles={[UserType.TEACHER]} />,
       children: [
@@ -22,6 +26,21 @@ const App = () => {
             { index: true, element: <TeacherCoursesPage /> },
             { path: "tasks", element: <TeacherTasksPage /> },
             { path: "courses", element: <TeacherCoursesPage /> },
+          ],
+        },
+      ],
+    },
+    {
+      element: <ProtectedRoute allowedRoles={[UserType.STUDENT]} />,
+      children: [
+        {
+          path: "/student",
+          element: <RootLayout />,
+          children: [
+            { index: true, element: <StudentDashboardPage /> },
+            { path: "tasks", element: <StudentTasksPage /> },
+            { path: "dashboard", element: <StudentDashboardPage /> },
+            { path: "courses", element: <StudentCoursesPage /> },
           ],
         },
       ],

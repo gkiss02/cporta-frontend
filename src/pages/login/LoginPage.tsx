@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/auth/AuthContext";
 import api from "../../api/axiosClient";
 
-const LoginPage = () => {
+const LoginPage: React.FC<{ type: "student" | "teacher" }> = (props) => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -25,7 +25,7 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/auth/teacher/login", {
+      const response = await api.post(`/auth/${props.type}/login`, {
         email,
         password,
       });
@@ -34,7 +34,7 @@ const LoginPage = () => {
 
       login(accessToken, user);
 
-      navigate("/teacher/courses");
+      navigate(`/${props.type}/courses`);
     } catch (err) {
       console.error("Login failed:", err);
     } finally {
