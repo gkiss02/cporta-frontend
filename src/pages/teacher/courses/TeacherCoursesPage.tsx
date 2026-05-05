@@ -1,5 +1,5 @@
 import { Flex, Heading } from "@radix-ui/themes";
-import ApiTable from "../../../components/ApiTable/ApiTable";
+import ApiTable from "../../../components/api-table/ApiTable";
 import { useEffect, useState } from "react";
 import api from "../../../api/axiosClient";
 import type { Course } from "../../../types/types";

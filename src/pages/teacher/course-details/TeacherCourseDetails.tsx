@@ -12,7 +12,7 @@ import {
   Heading,
   Text,
 } from "@radix-ui/themes";
-import ApiTable from "../../../components/ApiTable/ApiTable";
+import ApiTable from "../../../components/api-table/ApiTable";
 
 const CourseDetails = () => {
   const { courseId } = useParams<{ courseId: string }>();

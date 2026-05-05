@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import { Box, Flex, Heading } from "@radix-ui/themes";
-import Sidebar from "./Sidebar/Sidebar";
+import Sidebar from "./side-bar/Sidebar";
 import { Code } from "lucide-react";
 
 const RootLayout = () => {

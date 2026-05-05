@@ -2,8 +2,7 @@ import { Text, Card, Flex } from "@radix-ui/themes";
 import NavItem from "./NavItem";
 import {
   ClipboardCheck,
-  FileCheck,
-  Files,
+  ClipboardList,
   GraduationCap,
   LayoutDashboard,
 } from "lucide-react";
@@ -106,13 +105,13 @@ const Sidebar = () => {
             />
             <NavItem
               label="Kurzusok"
-              icon={<Files />}
+              icon={<GraduationCap />}
               active={location.pathname.includes("/student/courses")}
               path="courses"
             />
             <NavItem
               label="Feladatok"
-              icon={<FileCheck />}
+              icon={<ClipboardList />}
               active={location.pathname.includes("/student/tasks")}
               path="tasks"
             />
