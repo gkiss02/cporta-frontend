@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import type { Student, Task } from "../../../types/types";
 import api from "../../../api/axiosClient";
 import {
@@ -22,6 +22,7 @@ const CourseDetails = () => {
     name: string;
     code: string;
   }>();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!courseId) return;
@@ -43,7 +44,7 @@ const CourseDetails = () => {
 
     const fetchTasks = async () => {
       try {
-        const response = await api.get(`/task/${courseId}`);
+        const response = await api.get(`/task/list/${courseId}`);
 
         setTasks(response.data);
       } catch (e) {
@@ -71,6 +72,7 @@ const CourseDetails = () => {
             <Heading size="6">{courseDetails?.name}</Heading>
           </Box>
           <Button
+            onClick={() => navigate(`/teacher/${courseId}/task/new`)}
             style={{
               textTransform: "uppercase",
               backgroundColor: "var(--color-surface)",
