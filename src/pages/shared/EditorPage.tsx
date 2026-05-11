@@ -1,10 +1,11 @@
 import { Box, Flex, Button, Heading, Text, Spinner } from "@radix-ui/themes";
 import Editor from "@monaco-editor/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Play, Save, ChevronLeft } from "lucide-react";
+import { Play, Save, ChevronLeft, Terminal } from "lucide-react";
 import api from "../../api/axiosClient";
 import type { Task } from "../../types/types";
+import { io, type Socket } from "socket.io-client";
 
 const EditorPage = () => {
   const { taskId } = useParams<{ taskId: string }>();
@@ -14,6 +15,55 @@ const EditorPage = () => {
     `#include <iostream>\n\nint main() {\n    std::cout << "Hello, CPorta!" << std::endl;\n    return 0;\n}`
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string>();
+  const [containerId, setContainerId] = useState<string>();
+  const [output, setOutput] = useState<string>("");
+  const [socketId, setSocketId] = useState<string>();
+  const socketRef = useRef<Socket | null>(null);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+  const [isCompiling, setIsCompiling] = useState(false);
+
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [output]);
+
+  useEffect(() => {
+    (async function () {
+      const { data } = await api.post("/submission", {
+        taskId,
+        code,
+      });
+
+      setContainerId(data.containerId);
+      setSubmissionId(data.createdSubmissionId);
+    })();
+  }, [taskId]);
+
+  const handleStop = useCallback(() => {
+    if (!socketRef.current || !containerId) return;
+
+    socketRef.current.emit("stop", { containerId });
+    setOutput((prev) => prev + "\n--- Futtatás megszakítva (Ctrl+C) ---\n");
+    setIsCompiling(false);
+  }, [isCompiling, containerId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key.toLowerCase() === "c") {
+        const selection = window.getSelection()?.toString();
+
+        if (!selection) {
+          e.preventDefault();
+          handleStop();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleStop, isCompiling]);
 
   useEffect(() => {
     if (!taskId) return;
@@ -27,14 +77,74 @@ const EditorPage = () => {
     })();
   }, [taskId]);
 
+  useEffect(() => {
+    socketRef.current = io(
+      import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:3000",
+      {
+        withCredentials: true,
+      }
+    );
+
+    const socket = socketRef.current;
+
+    socket.on("connect", () => {
+      setSocketId(socket.id);
+      setOutput((prev) => prev + "--- Terminál kapcsolat felépítve ---\n");
+    });
+
+    socket.on("output", (data: string) => {
+      setOutput((prev) => prev + data);
+    });
+
+    socket.on("connect_error", (err) => {
+      setOutput((prev) => prev + `\nKapcsolódási hiba: ${err.message}\n`);
+    });
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, []);
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      console.log("saving");
+      await api.post(`/submission/${submissionId}`, {
+        code,
+      });
     } catch (err) {
       console.error("Save failed:", err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleCompile = async () => {
+    setOutput("");
+    if (!socketId) {
+      setOutput((prev) => prev + "Hiba: Nincs aktív terminál kapcsolat.\n");
+      return;
+    }
+
+    setIsCompiling(true);
+    setOutput(
+      (prev) =>
+        prev + "\n--- Kód fordítása és futtatása... (Leállítás: Ctrl+C) ---\n"
+    );
+
+    try {
+      await api.post(`/submission/compile/${submissionId}`, {
+        containerId,
+        code,
+        socketId,
+      });
+
+      setIsCompiling(false);
+    } catch (err) {
+      console.error("Compile failed:", err);
+      setOutput((prev) => prev + "Hiba történt a fordítás során.\n");
+      setIsCompiling(false);
     }
   };
 
@@ -63,12 +173,18 @@ const EditorPage = () => {
         </Flex>
 
         <Flex gap="3">
-          <Button variant="soft" color="gray" style={{ cursor: "pointer" }}>
-            <Play size={16} /> Futtatás
+          <Button
+            variant="soft"
+            color="gray"
+            onClick={handleCompile}
+            disabled={isSaving || isCompiling}
+            style={{ cursor: "pointer" }}
+          >
+            {isCompiling ? <Spinner /> : <Play size={16} />} Futtatás
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || isCompiling}
             style={{ cursor: "pointer" }}
           >
             {isSaving ? <Spinner /> : <Save size={16} />}
@@ -84,6 +200,7 @@ const EditorPage = () => {
           borderRadius: "var(--radius-small)",
           overflow: "hidden",
           backgroundColor: "#1e1e1e",
+          minHeight: "200px",
         }}
       >
         <Editor
@@ -102,6 +219,53 @@ const EditorPage = () => {
             lineNumbersMinChars: 3,
           }}
         />
+      </Box>
+      <Box
+        style={{
+          height: "250px",
+          border: "2px solid #4a4a4a",
+          borderRadius: "var(--radius-small)",
+          backgroundColor: "#121212",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <Flex
+          align="center"
+          gap="2"
+          style={{
+            backgroundColor: "#1c1b1b",
+            padding: "8px 12px",
+            borderBottom: "1px solid #4a4a4a",
+          }}
+        >
+          <Terminal size={16} color="var(--accent-9)" />
+          <Text size="2" weight="bold" style={{ color: "var(--text-main)" }}>
+            Terminál
+          </Text>
+        </Flex>
+        <Box
+          style={{
+            flexGrow: 1,
+            padding: "12px",
+            overflowY: "auto",
+          }}
+        >
+          <pre
+            style={{
+              margin: 0,
+              fontFamily: "var(--code-font-family)",
+              color: "#4ae176",
+              fontSize: "13px",
+              whiteSpace: "pre-wrap",
+              wordWrap: "break-word",
+            }}
+          >
+            {output}
+          </pre>
+          <div ref={terminalEndRef} />
+        </Box>
       </Box>
     </Flex>
   );
