@@ -36,4 +36,5 @@ export type Task = {
   courseId: string;
   deadline: Date;
   createdAt: Date;
+  courseName: string;
 };

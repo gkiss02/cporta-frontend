@@ -9,9 +9,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { UserType } from "./types/types";
 import { AuthProvider } from "./context/auth/AuthProvider";
 import StudentDashboardPage from "./pages/student/student-dashboard/StudentDashboardPage";
-import StudentTasksPage from "./pages/student/student-tasks/StudentTasksPage";
 import StudentCoursesPage from "./pages/student/student-courses/StudentCoursesPage";
 import CourseDetails from "./pages/teacher/course-details/TeacherCourseDetails";
+import StudentTaskDetails from "./pages/student/student-task-details/StudentTaskDetails";
+import EditorPage from "./pages/shared/EditorPage";
 
 const App = () => {
   const router = createBrowserRouter([
@@ -46,9 +47,15 @@ const App = () => {
           element: <RootLayout />,
           children: [
             { index: true, element: <StudentDashboardPage /> },
-            { path: "tasks", element: <StudentTasksPage /> },
             { path: "dashboard", element: <StudentDashboardPage /> },
             { path: "courses", element: <StudentCoursesPage /> },
+            {
+              path: ":courseId/task/:taskId",
+              children: [
+                { index: true, element: <StudentTaskDetails /> },
+                { path: "editor", element: <EditorPage /> },
+              ],
+            },
           ],
         },
       ],

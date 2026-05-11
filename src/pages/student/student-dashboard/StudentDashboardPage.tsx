@@ -1,8 +1,9 @@
 import { Box, Heading } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import api from "../../../api/axiosClient";
-import type { Task } from "../../../types/types";
+
 import ActiveTaskCard from "../../../components/active-task-card/ActiveTaskCard";
+import type { Task } from "../../../types/types";
 
 const StudentDashboardPage = () => {
   const [activeTasks, setActiveTask] = useState<Task[]>();

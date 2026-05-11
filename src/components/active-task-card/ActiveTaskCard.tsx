@@ -1,12 +1,14 @@
 import { Card, Flex, Box, Text, Button } from "@radix-ui/themes";
 import { Code, Clock, ArrowRight } from "lucide-react";
 import type { Task } from "../../types/types";
+import { useNavigate } from "react-router-dom";
 
 interface ActiveTaskCardProps {
   task: Task;
 }
 
 const ActiveTaskCard: React.FC<ActiveTaskCardProps> = ({ task }) => {
+  const navigate = useNavigate();
   let formattedDate = "Nincs határidő";
   if (task.deadline) {
     const d = new Date(task.deadline);
@@ -72,6 +74,7 @@ const ActiveTaskCard: React.FC<ActiveTaskCardProps> = ({ task }) => {
             border: "1px solid var(--gray-a6)",
             color: "var(--text-main)",
           }}
+          onClick={() => navigate(`/student/${task.courseId}/task/${task._id}`)}
         >
           Megnyitás <ArrowRight size={16} />
         </Button>
