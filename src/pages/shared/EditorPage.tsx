@@ -4,12 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useBlocker } from "react-router-dom";
 import { Play, Save, ChevronLeft, Terminal } from "lucide-react";
 import api from "../../api/axiosClient";
-import type { Task } from "../../types/types";
+import { UserType, type Task } from "../../types/types";
 import { io, type Socket } from "socket.io-client";
 import UnsavedChangesDialog from "../../components/ussaved-changes-dialog.tsx/UnsavedChangesDialog";
+import { useAuth } from "../../context/auth/AuthContext";
 
 const EditorPage = () => {
-  const { taskId } = useParams<{ taskId: string }>();
+  const { taskId, submissionId: urlSubmissionId } = useParams<{
+    taskId: string;
+    submissionId: string;
+  }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<Task>();
 
@@ -24,6 +28,28 @@ const EditorPage = () => {
   const socketRef = useRef<Socket | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const [isCompiling, setIsCompiling] = useState(false);
+  const { user } = useAuth();
+
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+
+  const handleFinalize = async () => {
+    try {
+      await api.post(`/submission/finalize/${submissionId}`);
+      navigate(-1);
+    } catch (err) {
+      console.error("Finalize failed:", err);
+    }
+  };
+
+  const handleGrade = async (point: number) => {
+    try {
+      await api.post(`/submission/grade/${submissionId}`, { point });
+      setIsGradeModalOpen(false);
+      navigate(-1);
+    } catch (err) {
+      console.error("Grading failed:", err);
+    }
+  };
 
   const hasUnsavedChanges =
     code !== undefined && initialCode !== undefined && code !== initialCode;
@@ -50,17 +76,25 @@ const EditorPage = () => {
 
   useEffect(() => {
     (async function () {
-      const { data } = await api.post("/submission", {
-        taskId,
-        code,
-      });
+      let data;
+
+      if (urlSubmissionId && user?.type !== UserType.STUDENT) {
+        console.log(taskId);
+        const response = await api.get(
+          `/submission/teacher-view/${taskId}/${urlSubmissionId}`
+        );
+        data = response.data;
+      } else {
+        const response = await api.post("/submission", { taskId, code });
+        data = response.data;
+      }
 
       setContainerId(data.containerId);
       setSubmissionId(data.submissionId);
       setCode(data.code);
       setInitialCode(data.code);
     })();
-  }, [taskId]);
+  }, [taskId, urlSubmissionId, user?.type]);
 
   const handleStop = useCallback(() => {
     if (!socketRef.current || !containerId) return;
@@ -156,7 +190,12 @@ const EditorPage = () => {
     );
 
     try {
-      await api.post(`/submission/compile/${submissionId}`, {
+      const isStudent = user?.type === UserType.STUDENT;
+      const endpoint = isStudent
+        ? `/submission/compile/${submissionId}`
+        : `/submission/teacher/compile/${submissionId}`;
+
+      await api.post(endpoint, {
         containerId,
         code,
         socketId,
@@ -214,26 +253,28 @@ const EditorPage = () => {
           >
             {isCompiling ? <Spinner /> : <Play size={16} />} Futtatás
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || isCompiling || !hasUnsavedChanges}
-            style={{
-              cursor:
-                isSaving || isCompiling || !hasUnsavedChanges
-                  ? "default"
-                  : "pointer",
-              border: "1px solid var(--border-color)",
-              backgroundColor: hasUnsavedChanges
-                ? "var(--accent-9)"
-                : "var(--gray-a3)",
-              color: hasUnsavedChanges
-                ? "var(--color-background)"
-                : "var(--text-secondary)",
-            }}
-          >
-            {isSaving ? <Spinner /> : <Save size={16} />}
-            Mentés
-          </Button>
+          {user?.type === UserType.STUDENT && (
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || isCompiling || !hasUnsavedChanges}
+              style={{
+                cursor:
+                  isSaving || isCompiling || !hasUnsavedChanges
+                    ? "default"
+                    : "pointer",
+                border: "1px solid var(--border-color)",
+                backgroundColor: hasUnsavedChanges
+                  ? "var(--accent-9)"
+                  : "var(--gray-a3)",
+                color: hasUnsavedChanges
+                  ? "var(--color-background)"
+                  : "var(--text-secondary)",
+              }}
+            >
+              {isSaving ? <Spinner /> : <Save size={16} />}
+              Mentés
+            </Button>
+          )}
         </Flex>
       </Flex>
 
@@ -254,6 +295,7 @@ const EditorPage = () => {
           theme="vs-dark"
           onChange={(value) => setCode(value || "")}
           options={{
+            readOnly: user?.type !== UserType.STUDENT,
             minimap: { enabled: false },
             fontSize: 14,
             padding: { top: 16 },

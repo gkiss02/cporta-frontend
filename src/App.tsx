@@ -36,6 +36,10 @@ const App = () => {
                   path: ":courseId/student/:studentId",
                   element: <StudentSubmissionsPage />,
                 },
+                {
+                  path: ":courseId/task/:taskId/editor/:submissionId",
+                  element: <EditorPage />,
+                },
                 { index: true, element: <TeacherCoursesPage /> },
                 { path: ":courseId", element: <CourseDetails /> },
               ],

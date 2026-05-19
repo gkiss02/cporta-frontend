@@ -6,6 +6,8 @@ import api from "../../../api/axiosClient";
 import ApiTable from "../../../components/api-table/ApiTable";
 
 interface SubmissionEntry {
+  _id: string;
+  taskId: string;
   status: string;
   submittedAt: string;
   grade: number | null;
@@ -79,6 +81,7 @@ const StudentSubmissionsPage = () => {
               ? new Date(s.submittedAt).toLocaleString("hu-HU")
               : "Nincs beadva",
             grade: s.grade !== null ? `${s.grade} pont` : "Nincs értékelve",
+            _id: `/teacher/courses/${courseId}/task/${s.taskId}/editor/${s._id}`,
           }))}
           mapping={["taskTitle", "status", "submittedAt", "grade"]}
         />
