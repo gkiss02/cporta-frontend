@@ -13,6 +13,7 @@ import StudentCoursesPage from "./pages/student/student-courses/StudentCoursesPa
 import CourseDetails from "./pages/teacher/course-details/TeacherCourseDetails";
 import StudentTaskDetails from "./pages/student/student-task-details/StudentTaskDetails";
 import EditorPage from "./pages/shared/EditorPage";
+import StudentSubmissionsPage from "./pages/teacher/student-details/StudentDetailsPage";
 
 const App = () => {
   const router = createBrowserRouter([
@@ -31,6 +32,10 @@ const App = () => {
             {
               path: "courses",
               children: [
+                {
+                  path: ":courseId/student/:studentId",
+                  element: <StudentSubmissionsPage />,
+                },
                 { index: true, element: <TeacherCoursesPage /> },
                 { path: ":courseId", element: <CourseDetails /> },
               ],

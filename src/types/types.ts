@@ -27,6 +27,7 @@ export type Student = {
   neptunCode: string;
   lastLoginAt: string;
   averageGrade?: number;
+  _id: string;
 };
 
 export type Task = {

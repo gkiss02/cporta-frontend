@@ -11,9 +11,7 @@ const EditorPage = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<Task>();
-  const [code, setCode] = useState<string>(
-    `#include <iostream>\n\nint main() {\n    std::cout << "Hello, CPorta!" << std::endl;\n    return 0;\n}`
-  );
+  const [code, setCode] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
   const [submissionId, setSubmissionId] = useState<string>();
   const [containerId, setContainerId] = useState<string>();
@@ -37,7 +35,8 @@ const EditorPage = () => {
       });
 
       setContainerId(data.containerId);
-      setSubmissionId(data.createdSubmissionId);
+      setSubmissionId(data.submissionId);
+      setCode(data.code);
     })();
   }, [taskId]);
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Task } from "../../../types/types";
 import api from "../../../api/axiosClient";
-import { StickyNote } from "lucide-react";
+import { StickyNote, Calendar } from "lucide-react";
 
 const StudentTaskDetails = () => {
   const [task, setTask] = useState<Task>();
@@ -24,6 +24,18 @@ const StudentTaskDetails = () => {
       }
     })();
   }, [taskId]);
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Nincs határidő";
+    return new Date(dateString).toLocaleDateString("hu-HU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <Flex p={"6"} width={"100%"} direction={"column"} gap={"6"}>
       <Flex width={"100%"} justify={"between"}>
@@ -81,6 +93,21 @@ const StudentTaskDetails = () => {
           Specifikáció
         </Flex>
         <Text style={{ fontSize: ".9rem" }}>{task?.description}</Text>
+        <Flex
+          gap="2"
+          align="center"
+          mt="2"
+          style={{
+            borderTop: "1px solid var(--gray-a4)",
+            paddingTop: "1rem",
+            color: "var(--gray-11)",
+            fontSize: "0.85rem",
+          }}
+        >
+          <Calendar size={16} />
+          <Text weight="medium">Határidő:</Text>
+          <Text>{formatDate(task?.deadline.toString())}</Text>
+        </Flex>
       </Card>
     </Flex>
   );

@@ -58,12 +58,7 @@ const CourseDetails = () => {
 
   return (
     <Flex p={"6"} direction={"column"} align={"center"} width={"100%"}>
-      <Flex
-        direction={"column"}
-        gap={"4"}
-        width={"100%"}
-        style={{ maxWidth: "1200px" }}
-      >
+      <Flex direction={"column"} gap={"4"} width={"100%"}>
         <Flex justify={"between"} align={"end"}>
           <Box>
             <Text style={{ color: "var(--accent-9)" }} size={"2"}>
@@ -84,7 +79,7 @@ const CourseDetails = () => {
             + Új feladat kiírása
           </Button>
         </Flex>
-        <Grid columns="1fr 350px" gap="5">
+        <Grid columns="1fr 20rem" gap="5" align={"start"}>
           <ApiTable
             columns={[
               "Vezetéknév",
@@ -93,7 +88,10 @@ const CourseDetails = () => {
               "Átlag",
               "Utolsó aktivitás",
             ]}
-            data={students}
+            data={students.map((s) => ({
+              ...s,
+              _id: `student/${s._id}`,
+            }))}
             mapping={[
               "lastName",
               "firstName",
@@ -105,8 +103,8 @@ const CourseDetails = () => {
           <Box
             style={{
               backgroundColor: "rgba(255,255,255,0.02)",
-              padding: "20px",
-              borderRadius: "8px",
+              padding: "2rem",
+              borderRadius: ".5rem",
             }}
           >
             <Heading
