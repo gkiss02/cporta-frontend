@@ -30,6 +30,20 @@ export type Student = {
   _id: string;
 };
 
+export type ContainerConfig = {
+  compiler: string;
+  cppStandard: string;
+  compileFlags: string;
+  ramLimit: number;
+  storageLimit: number;
+  cpuQuota: number;
+  pidLimit: number;
+  networkIsolation: boolean;
+  readonlyRootfs: boolean;
+  runTimeoutMs: number;
+  compileTimeoutSec: number;
+};
+
 export type Task = {
   _id: string;
   title: string;
@@ -38,4 +52,5 @@ export type Task = {
   deadline: Date;
   createdAt: Date;
   courseName: string;
+  containerConfig: ContainerConfig;
 };

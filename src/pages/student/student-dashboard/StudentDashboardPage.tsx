@@ -1,4 +1,4 @@
-import { Box, Heading } from "@radix-ui/themes";
+import { Box, Flex, Heading } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import api from "../../../api/axiosClient";
 
@@ -21,13 +21,23 @@ const StudentDashboardPage = () => {
   }, []);
 
   return (
-    <Box p={"6"}>
-      <Heading size={"6"} mb={"6"}>
+    <Box
+      p="6"
+      style={{
+        flexGrow: 1,
+        overflowY: "auto",
+        height: "100%",
+        border: "1px solid var(--border-color)",
+      }}
+    >
+      <Heading size="6" mb="6">
         Aktív feladatok
       </Heading>
-      {activeTasks?.map((activeTask) => (
-        <ActiveTaskCard task={activeTask} />
-      ))}
+      <Flex direction="column" gap="4">
+        {activeTasks?.map((activeTask) => (
+          <ActiveTaskCard key={activeTask._id} task={activeTask} />
+        ))}
+      </Flex>
     </Box>
   );
 };

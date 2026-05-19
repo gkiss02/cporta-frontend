@@ -1,17 +1,21 @@
 import { Box, Flex, Button, Heading, Text, Spinner } from "@radix-ui/themes";
 import Editor from "@monaco-editor/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useBlocker } from "react-router-dom";
 import { Play, Save, ChevronLeft, Terminal } from "lucide-react";
 import api from "../../api/axiosClient";
 import type { Task } from "../../types/types";
 import { io, type Socket } from "socket.io-client";
+import UnsavedChangesDialog from "../../components/ussaved-changes-dialog.tsx/UnsavedChangesDialog";
 
 const EditorPage = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<Task>();
+
   const [code, setCode] = useState<string>();
+  const [initialCode, setInitialCode] = useState<string>();
+
   const [isSaving, setIsSaving] = useState(false);
   const [submissionId, setSubmissionId] = useState<string>();
   const [containerId, setContainerId] = useState<string>();
@@ -20,6 +24,23 @@ const EditorPage = () => {
   const socketRef = useRef<Socket | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const [isCompiling, setIsCompiling] = useState(false);
+
+  const hasUnsavedChanges =
+    code !== undefined && initialCode !== undefined && code !== initialCode;
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  const notifyServerOnLeave = async () => {
+    if (!containerId) return;
+    try {
+      await api.delete(`/submission/${containerId}`);
+    } catch (err) {
+      console.error("Failed to call leave endpoint:", err);
+    }
+  };
 
   useEffect(() => {
     if (terminalEndRef.current) {
@@ -37,6 +58,7 @@ const EditorPage = () => {
       setContainerId(data.containerId);
       setSubmissionId(data.submissionId);
       setCode(data.code);
+      setInitialCode(data.code);
     })();
   }, [taskId]);
 
@@ -112,6 +134,7 @@ const EditorPage = () => {
       await api.post(`/submission/${submissionId}`, {
         code,
       });
+      setInitialCode(code);
     } catch (err) {
       console.error("Save failed:", err);
     } finally {
@@ -158,8 +181,15 @@ const EditorPage = () => {
         <Flex align="center" gap="4">
           <Button
             variant="ghost"
-            onClick={() => navigate(-1)}
-            style={{ cursor: "pointer" }}
+            onClick={async () => {
+              if (hasUnsavedChanges) {
+                navigate(-1);
+              } else {
+                await notifyServerOnLeave();
+                navigate(-1);
+              }
+            }}
+            style={{ cursor: "pointer", border: "1px solid transparent" }}
           >
             <ChevronLeft size={20} />
           </Button>
@@ -177,14 +207,29 @@ const EditorPage = () => {
             color="gray"
             onClick={handleCompile}
             disabled={isSaving || isCompiling}
-            style={{ cursor: "pointer" }}
+            style={{
+              cursor: "pointer",
+              border: "1px solid var(--border-color)",
+            }}
           >
             {isCompiling ? <Spinner /> : <Play size={16} />} Futtatás
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaving || isCompiling}
-            style={{ cursor: "pointer" }}
+            disabled={isSaving || isCompiling || !hasUnsavedChanges}
+            style={{
+              cursor:
+                isSaving || isCompiling || !hasUnsavedChanges
+                  ? "default"
+                  : "pointer",
+              border: "1px solid var(--border-color)",
+              backgroundColor: hasUnsavedChanges
+                ? "var(--accent-9)"
+                : "var(--gray-a3)",
+              color: hasUnsavedChanges
+                ? "var(--color-background)"
+                : "var(--text-secondary)",
+            }}
           >
             {isSaving ? <Spinner /> : <Save size={16} />}
             Mentés
@@ -222,7 +267,7 @@ const EditorPage = () => {
       <Box
         style={{
           height: "250px",
-          border: "2px solid #4a4a4a",
+          border: "1px solid var(--border-color)",
           borderRadius: "var(--radius-small)",
           backgroundColor: "#121212",
           display: "flex",
@@ -236,7 +281,7 @@ const EditorPage = () => {
           style={{
             backgroundColor: "#1c1b1b",
             padding: "8px 12px",
-            borderBottom: "1px solid #4a4a4a",
+            borderBottom: "1px solid var(--border-color)",
           }}
         >
           <Terminal size={16} color="var(--accent-9)" />
@@ -266,6 +311,15 @@ const EditorPage = () => {
           <div ref={terminalEndRef} />
         </Box>
       </Box>
+
+      <UnsavedChangesDialog
+        open={blocker.state === "blocked"}
+        onCancel={() => blocker.reset?.()}
+        onConfirm={async () => {
+          await notifyServerOnLeave();
+          blocker.proceed?.();
+        }}
+      />
     </Flex>
   );
 };
