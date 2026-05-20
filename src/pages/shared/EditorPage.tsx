@@ -2,11 +2,19 @@ import { Box, Flex, Button, Heading, Text, Spinner } from "@radix-ui/themes";
 import Editor from "@monaco-editor/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useBlocker } from "react-router-dom";
-import { Play, Save, ChevronLeft, Terminal } from "lucide-react";
+import {
+  Play,
+  Save,
+  ChevronLeft,
+  Terminal,
+  CheckCircle2,
+  Award,
+} from "lucide-react";
 import api from "../../api/axiosClient";
 import { UserType, type Task } from "../../types/types";
 import { io, type Socket } from "socket.io-client";
 import UnsavedChangesDialog from "../../components/ussaved-changes-dialog.tsx/UnsavedChangesDialog";
+import { GradeSubmissionDialog } from "../../components/grade-submission-dialog/GradeSubmissionDialog";
 import { useAuth } from "../../context/auth/AuthContext";
 
 const EditorPage = () => {
@@ -21,6 +29,9 @@ const EditorPage = () => {
   const [initialCode, setInitialCode] = useState<string>();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+
   const [submissionId, setSubmissionId] = useState<string>();
   const [containerId, setContainerId] = useState<string>();
   const [output, setOutput] = useState<string>("");
@@ -30,26 +41,7 @@ const EditorPage = () => {
   const [isCompiling, setIsCompiling] = useState(false);
   const { user } = useAuth();
 
-  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
-
-  const handleFinalize = async () => {
-    try {
-      await api.post(`/submission/finalize/${submissionId}`);
-      navigate(-1);
-    } catch (err) {
-      console.error("Finalize failed:", err);
-    }
-  };
-
-  const handleGrade = async (point: number) => {
-    try {
-      await api.post(`/submission/grade/${submissionId}`, { point });
-      setIsGradeModalOpen(false);
-      navigate(-1);
-    } catch (err) {
-      console.error("Grading failed:", err);
-    }
-  };
+  const isStudent = user?.type === UserType.STUDENT;
 
   const hasUnsavedChanges =
     code !== undefined && initialCode !== undefined && code !== initialCode;
@@ -76,23 +68,26 @@ const EditorPage = () => {
 
   useEffect(() => {
     (async function () {
-      let data;
+      try {
+        let data;
 
-      if (urlSubmissionId && user?.type !== UserType.STUDENT) {
-        console.log(taskId);
-        const response = await api.get(
-          `/submission/teacher-view/${taskId}/${urlSubmissionId}`
-        );
-        data = response.data;
-      } else {
-        const response = await api.post("/submission", { taskId, code });
-        data = response.data;
+        if (urlSubmissionId && user?.type !== UserType.STUDENT) {
+          const response = await api.get(
+            `/submission/teacher-view/${taskId}/${urlSubmissionId}`
+          );
+          data = response.data;
+        } else {
+          const response = await api.post("/submission", { taskId, code });
+          data = response.data;
+        }
+
+        setContainerId(data.containerId);
+        setSubmissionId(data.submissionId);
+        setCode(data.code);
+        setInitialCode(data.code);
+      } catch (e) {
+        console.error("Failed to initialize workspace:", e);
       }
-
-      setContainerId(data.containerId);
-      setSubmissionId(data.submissionId);
-      setCode(data.code);
-      setInitialCode(data.code);
     })();
   }, [taskId, urlSubmissionId, user?.type]);
 
@@ -176,6 +171,32 @@ const EditorPage = () => {
     }
   };
 
+  const handleFinalize = async () => {
+    setIsFinalizing(true);
+    try {
+      if (hasUnsavedChanges) {
+        await api.post(`/submission/${submissionId}`, { code });
+      }
+      await api.post(`/submission/finalize/${submissionId}`);
+      setInitialCode(code); // Reset guard state before leaving
+      navigate(-1);
+    } catch (err) {
+      console.error("Finalization failed:", err);
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  const handleGrade = async (point: number) => {
+    try {
+      await api.post(`/submission/grade/${submissionId}`, { point });
+      setIsGradeModalOpen(false);
+      navigate(-1);
+    } catch (err) {
+      console.error("Grading failed:", err);
+    }
+  };
+
   const handleCompile = async () => {
     setOutput("");
     if (!socketId) {
@@ -190,9 +211,8 @@ const EditorPage = () => {
     );
 
     try {
-      const isStudent = user?.type === UserType.STUDENT;
       const endpoint = isStudent
-        ? `/submission/compile/${submissionId}`
+        ? `/submission/student/compile/${submissionId}`
         : `/submission/teacher/compile/${submissionId}`;
 
       await api.post(endpoint, {
@@ -233,7 +253,23 @@ const EditorPage = () => {
             <ChevronLeft size={20} />
           </Button>
           <Box>
-            <Heading size="4">{task?.title || "Betöltés..."}</Heading>
+            <Flex gap="3" align="center">
+              <Heading size="4">{task?.title || "Betöltés..."}</Heading>
+              {!isStudent && (
+                <Text
+                  size="1"
+                  style={{
+                    backgroundColor: "rgba(173, 198, 255, 0.1)",
+                    color: "var(--accent-9)",
+                    padding: "0.2rem 0.5rem",
+                    borderRadius: "4px",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  READ-ONLY NÉZET
+                </Text>
+              )}
+            </Flex>
             <Text size="1" color="gray">
               {task?.courseName}
             </Text>
@@ -245,7 +281,7 @@ const EditorPage = () => {
             variant="soft"
             color="gray"
             onClick={handleCompile}
-            disabled={isSaving || isCompiling}
+            disabled={isSaving || isCompiling || isFinalizing}
             style={{
               cursor: "pointer",
               border: "1px solid var(--border-color)",
@@ -253,26 +289,66 @@ const EditorPage = () => {
           >
             {isCompiling ? <Spinner /> : <Play size={16} />} Futtatás
           </Button>
-          {user?.type === UserType.STUDENT && (
+
+          {isStudent ? (
+            <>
+              <Button
+                onClick={handleSave}
+                disabled={
+                  isSaving || isCompiling || !hasUnsavedChanges || isFinalizing
+                }
+                style={{
+                  cursor:
+                    isSaving ||
+                    isCompiling ||
+                    !hasUnsavedChanges ||
+                    isFinalizing
+                      ? "default"
+                      : "pointer",
+                  border: "1px solid var(--border-color)",
+                  backgroundColor: hasUnsavedChanges
+                    ? "var(--accent-9)"
+                    : "var(--gray-a3)",
+                  color: hasUnsavedChanges
+                    ? "var(--color-background)"
+                    : "var(--text-secondary)",
+                }}
+              >
+                {isSaving ? <Spinner /> : <Save size={16} />}
+                Mentés
+              </Button>
+
+              <Button
+                onClick={handleFinalize}
+                disabled={isSaving || isCompiling || isFinalizing}
+                style={{
+                  cursor:
+                    isSaving || isCompiling || isFinalizing
+                      ? "default"
+                      : "pointer",
+                  border: "1px solid transparent",
+                  backgroundColor: "var(--rt-color-success)",
+                  color: "var(--color-background)",
+                  fontWeight: "bold",
+                }}
+              >
+                {isFinalizing ? <Spinner /> : <CheckCircle2 size={16} />}
+                Véglegesítés
+              </Button>
+            </>
+          ) : (
             <Button
-              onClick={handleSave}
-              disabled={isSaving || isCompiling || !hasUnsavedChanges}
+              onClick={() => setIsGradeModalOpen(true)}
               style={{
-                cursor:
-                  isSaving || isCompiling || !hasUnsavedChanges
-                    ? "default"
-                    : "pointer",
-                border: "1px solid var(--border-color)",
-                backgroundColor: hasUnsavedChanges
-                  ? "var(--accent-9)"
-                  : "var(--gray-a3)",
-                color: hasUnsavedChanges
-                  ? "var(--color-background)"
-                  : "var(--text-secondary)",
+                cursor: "pointer",
+                border: "1px solid transparent",
+                backgroundColor: "var(--accent-9)",
+                color: "var(--color-background)",
+                fontWeight: "bold",
               }}
             >
-              {isSaving ? <Spinner /> : <Save size={16} />}
-              Mentés
+              <Award size={16} />
+              Pontozás
             </Button>
           )}
         </Flex>
@@ -295,7 +371,7 @@ const EditorPage = () => {
           theme="vs-dark"
           onChange={(value) => setCode(value || "")}
           options={{
-            readOnly: user?.type !== UserType.STUDENT,
+            readOnly: !isStudent,
             minimap: { enabled: false },
             fontSize: 14,
             padding: { top: 16 },
@@ -306,6 +382,7 @@ const EditorPage = () => {
           }}
         />
       </Box>
+
       <Box
         style={{
           height: "250px",
@@ -361,6 +438,12 @@ const EditorPage = () => {
           await notifyServerOnLeave();
           blocker.proceed?.();
         }}
+      />
+
+      <GradeSubmissionDialog
+        open={isGradeModalOpen}
+        onClose={() => setIsGradeModalOpen(false)}
+        onConfirm={handleGrade}
       />
     </Flex>
   );
